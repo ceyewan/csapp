@@ -260,7 +260,7 @@ int isLessOrEqual(int x, int y)
  */
 int logicalNeg(int x)
 {
-  return ((~x + 1) >> 31) & 1;
+  return ((x | (~x + 1)) >> 31) + 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -276,7 +276,22 @@ int logicalNeg(int x)
  */
 int howManyBits(int x)
 {
-  return 0;
+  int b16, b8, b4, b2, b1, b0;
+  int flag = x >> 31;
+  x = (flag & ~x) | (~flag & x); // x为非正数则不变 ,x 为负数 则相当于按位取反
+  b16 = !!(x >> 16) << 4;        //如果高16位不为0,则我们让b16=16
+  x >>= b16;                     //如果高16位不为0 则我们右移动16位 来看高16位的情况
+  //下面过程基本类似
+  b8 = !!(x >> 8) << 3;
+  x >>= b8;
+  b4 = !!(x >> 4) << 2;
+  x >>= b4;
+  b2 = !!(x >> 2) << 1;
+  x >>= b2;
+  b1 = !!(x >> 1);
+  x >>= b1;
+  b0 = x;
+  return b0 + b1 + b2 + b4 + b8 + b16 + 1;
 }
 // float
 /*
@@ -292,7 +307,20 @@ int howManyBits(int x)
  */
 unsigned floatScale2(unsigned uf)
 {
-  return 2;
+  int flag = uf >> 31;
+  int a = (uf >> 23) & ((1 << 8) - 1);
+  int b = (uf & ((1 << 23) - 1));
+  if (a == 0xff)
+    return uf;
+  else if (a == 0x0)
+  {
+    b <<= 1;
+  }
+  else
+  {
+    a += 1;
+  }
+  return (flag << 31) | (a << 23) | b;
 }
 /*
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -308,7 +336,20 @@ unsigned floatScale2(unsigned uf)
  */
 int floatFloat2Int(unsigned uf)
 {
-  return 2;
+  int flag = uf >> 31;
+  int a = (uf >> 23) & ((1 << 8) - 1);
+  int b = (uf & ((1 << 23) - 1));
+  if (a - 127 >= 31)
+    return 0x80000000u;
+  else if (a < 127)
+    return 0;
+  else
+  {
+    if (flag == 0)
+      return (1 << (a - 127)) + (b << (a - 127) >> 23);
+    else
+      return -(1 << (a - 127)) - (b << (a - 127) >> 23);
+  }
 }
 /*
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -325,5 +366,20 @@ int floatFloat2Int(unsigned uf)
  */
 unsigned floatPower2(int x)
 {
-  return 2;
+  if (x > 127)
+  {
+    return 0xFF << 23;
+  }
+  else if (x < -148)
+    return 0;
+  else if (x >= -126)
+  {
+    int exp = x + 127;
+    return (exp << 23);
+  }
+  else
+  {
+    int t = 148 + x;
+    return (1 << t);
+  }
 }
