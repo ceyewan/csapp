@@ -370,16 +370,18 @@ unsigned floatPower2(int x)
   {
     return 0xFF << 23;
   }
-  else if (x < -148)
+  else if (x < -149)
     return 0;
+  // 移动整数部分
   else if (x >= -126)
   {
     int exp = x + 127;
     return (exp << 23);
   }
+  // 移动小数部分
   else
   {
-    int t = 148 + x;
+    int t = 149 + x;
     return (1 << t);
   }
 }
